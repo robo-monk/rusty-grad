@@ -1,6 +1,6 @@
 use std::ops::{Add, Sub, Mul};
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 enum Operation {
     None,
     Add,
@@ -8,13 +8,13 @@ enum Operation {
     Mul,
 }
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub struct Value<T> {
+    label: String,
     data: T,
     grad: f64,
-    other: Option<Box<Value<T>>>,
+    children: (Option<Box<Value<T>>>, Option<Box<Value<T>>>),
     operation: Operation,
-    label: String,
     // _backward: Fn
 }
 
@@ -31,41 +31,6 @@ impl Into<Option<Box<Value<f64>>>> for Value<f64> {
     }
 }
 
-impl Add for Value<f64> {
-    type Output = Value<f64>;
-    fn add(mut self, other: Self) -> Self::Output {
-        let data = self.data + other.data;
-        // Value { data  }
-        self.data = data;
-        self.other = other.into();
-        self.operation = Operation::Add;
-        self
-    }
-}
-
-impl Sub for Value<f64> {
-    type Output = Value<f64>;
-    fn sub(mut self, other: Self) -> Self::Output {
-        let data = self.data - other.data;
-        self.data = data;
-        self.other = other.into();
-        self.operation = Operation::Sub;
-        self
-    }
-}
-
-impl Mul for Value<f64> {
-    type Output = Value<f64>;
-    fn mul(mut self, other: Self) -> Self::Output {
-        let data = self.data * other.data;
-        self.data = data;
-        self.other = other.into();
-        self.operation = Operation::Mul;
-        self
-    }
-}
-
-
 // def __add__(self, other):
 //     other = other if isinstance(other, Value) else Value(other)
 //     out = Value(self.data + other.data, (self, other), '+')
@@ -76,13 +41,50 @@ impl Mul for Value<f64> {
 //     out._backward = _backward
 
 //     return out
+impl Add for Value<f64> {
+    type Output = Value<f64>;
+    fn add(self, other: Self) -> Self::Output {
+        Value {
+            data: self.data + other.data,
+            label: format!("{}+{}", self.label, other.label),
+            grad: 0.0,
+            children: (self.into(), other.into()),
+            operation: Operation::Add
+        }
+    }
+}
+
+impl Sub for Value<f64> {
+    type Output = Value<f64>;
+    fn sub(self, other: Self) -> Self::Output {
+        Value {
+            data: self.data - other.data,
+            label: format!("{}-{}", self.label, other.label),
+            grad: 0.0,
+            children: (self.into(), other.into()),
+            operation: Operation::Sub
+        }
+    }
+}
+
+impl Mul for Value<f64> {
+    type Output = Value<f64>;
+    fn mul(self, other: Self) -> Self::Output {
+         Value {
+            data: self.data * other.data,
+            label: format!("{}*{}", self.label, other.label),
+            grad: 0.0,
+            children: (self.into(), other.into()),
+            operation: Operation::Mul
+        }
+    }
+}
 
 impl Value<f64> { 
     fn backward(&mut self) -> () {
         match self.operation {
             Operation::None => {}
             Operation::Add => {
-                self.grad += self.other.as_ref().unwrap().grad
             }
             Operation::Sub => {}
             Operation::Mul => {}
@@ -99,18 +101,9 @@ impl Value<f64> {
         Value {
             data,
             grad: 0.0,
-            other: None,
+            children: (None, None),
             label: "".to_string(),
             operation: Operation::None
         }
     }
-
-    // pub fn new(data: f64, label: str) -> Self {
-    //     Value {
-    //         data,
-    //         grad: 0.0,
-    //         other: None,
-    //         operation: Operation::None
-    //     }
-    // }
 }
