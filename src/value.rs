@@ -46,12 +46,12 @@ impl Add for Value<f64> {
 
 impl Sub for Value<f64> {
     type Output = Value<f64>;
-    fn sub(self, rhs: Self) -> Self::Output {
-        let data = self.data - rhs.data;
+    fn sub(self, other: Self) -> Self::Output {
+        let data = self.data - other.data;
         Value {
             data,
             grad: 0.0,
-            other: None,
+            other: other.into(),
             operation: Operation::Sub
         }
     }
@@ -59,12 +59,12 @@ impl Sub for Value<f64> {
 
 impl Mul for Value<f64> {
     type Output = Value<f64>;
-    fn mul(self, rhs: Self) -> Self::Output {
-        let data = self.data * rhs.data;
+    fn mul(self, other: Self) -> Self::Output {
+        let data = self.data * other.data;
         Value {
             data,
             grad: 0.0,
-            other: None,
+            other: other.into(),
             operation: Operation::Mul
         }
     }
